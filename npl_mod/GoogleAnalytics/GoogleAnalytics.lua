@@ -12,7 +12,7 @@ GoogleAnalytics = NPL.load("GoogleAnalytics")
 
 UA = 'UA-127983943-1' -- your ua number
 
-client = GoogleAnalytics:new():init(UA)
+client = GoogleAnalytics:new():init(UA, 123)
 
 options = {
     location = 'www.keepwork.com/lesson',
@@ -68,31 +68,19 @@ end
 function _M:ctor()
 end
 
-function _M:init(ua)
+function _M:init(ua, uid, client_id)
     self.ua = ua
-    self.latest_updated = os.time()
-    self:reset()
+    self.uid = uid
+    self.client_id = client_id or (rand(1000000000, 9999999999) .. '.' .. rand(1000000000, 9999999999))
 
     return self
-end
-
-function _M:reset()
-    self.client_id = rand(1000000000, 9999999999) .. '.' .. rand(1000000000, 9999999999)
-end
-
-function _M:update_clock()
-    local now = os.time()
-    -- client id will be changed if there's no new update in 30 mins
-    if (now - self.latest_updated > 60 * 30) then
-        self:reset()
-    end
-    self.latest_updated = now
 end
 
 function _M:new_params(options)
     -- https://www.cheatography.com/dmpg-tom/cheat-sheets/google-universal-analytics-url-collect-parameters/
     return {
         v = 1,
+        uid = self.uid, -- User ID (known uid as opposed to cid)
         cid = self.client_id, -- client id number
         tid = self.ua, -- tracking id (your ua number)
         a = rand(1000000000, 2147483647), -- a random number
