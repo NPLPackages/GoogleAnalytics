@@ -7,8 +7,9 @@ A simple google analytics client for npl
 GoogleAnalytics = NPL.load("GoogleAnalytics")
 
 UA = 'UA-127983943-1' -- your ua number
+user_id = 123
 
-client = GoogleAnalytics:new():init(UA)
+client = GoogleAnalytics:new():init(UA, user_id)
 
 options = {
     location = 'www.keepwork.com/lesson',
