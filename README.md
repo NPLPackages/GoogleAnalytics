@@ -38,3 +38,7 @@ options = {
 
 client:send_screen(options)
 ```
+
+## TODO
+
+- batch api
