@@ -117,7 +117,6 @@ function GoogleAnalytics:_Batch(batch_options)
 	-- https://developers.google.com/analytics/devguides/collection/protocol/v1/devguide
 	-- but it doesn't work. I can't figure out why.
 	LOG.std(nil, "error", "GoogleAnalytics->_Batch", "This api is not accomplished.");
-	return
 
 	local url = GA_BATCH_URL
 	-- TODO most 20 options can be sent once
@@ -201,5 +200,5 @@ function GoogleAnalytics:SendEvents(events)
 			return
 		end
 	end
-	self:_Batch(events)
+	-- self:_Batch(events)
 end
