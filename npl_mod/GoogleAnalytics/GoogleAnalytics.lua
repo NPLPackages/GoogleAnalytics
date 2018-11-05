@@ -5,24 +5,60 @@
 	desc: a simple google analytics client for npl, support both website and mobile app.
 	only support event type for now.
 
-	-------------------------------------------------------------------------------------------
+	===========================================================================================
 	useage:
+	===========================================================================================
+
+	-------------------------------------------------------------------------------------------
+	-- Load and init
 	-------------------------------------------------------------------------------------------
 
+	-- load mod
 	GoogleAnalytics = NPL.load("GoogleAnalytics")
 
-	UA = 'UA-127983943-1' -- your ua number
+	-- define parameters
 
-	client = GoogleAnalytics:new():init(UA, uid, cid)
+	-- ua number from google
+	-- this is the only mandatory parameter
+	UA = 'UA-127983943-1'
+	-- a account that represent a user, such as keepwork username or etc
+	-- default: 'anonymous'
+	user_id = 'dreamanddead'
+	-- an id that marks a client, such as an uuid of a machine with paracraft installed
+	-- default: a rand number
+	client_id = '215150-24a97f-23'
+	-- which app that is running. paracraft, haqi, haqi2 or etc
+	-- default: 'npl analytics'
+	app_name = 'paracraft'
+	-- which version of current app. 0.7.14, 0.7.0, or etc
+	-- default: '0.0'
+	app_version = '0.7.14'
 
+	-- init ga client
+	gaClient = GoogleAnalytics:new():init(UA, user_id, client_id, app_name, app_version)
+
+	-------------------------------------------------------------------------------------------
+	-- Send Event
+	-------------------------------------------------------------------------------------------
+
+	-- category key and action key are mandatory
 	options = {
-	category = 'test',
-	action = 'create',
-	label = 'keepwork',
-	value = 123
+	  category = 'block',
+	  action = 'create',
+	  label = 'paracraft',
+	  value = 62, -- a block id
 	}
 
-	client:SendEvent(options)
+	gaClient:SendEvent(options)
+
+	-------------------------------------------------------------------------------------------
+	-- Session control
+	-------------------------------------------------------------------------------------------
+
+	-- force starting a new session
+	gaClient:StartSession()
+	-- force ending the current session
+	gaClient:EndSession()
 ]]
 
 local GoogleAnalytics = commonlib.inherit(nil, NPL.export())
@@ -34,13 +70,12 @@ local http_post = System.os.GetUrl
 local GA_URL = 'https://www.google-analytics.com/collect'
 -- debug api address
 -- local GA_URL = 'https://www.google-analytics.com/debug/collect'
-local GA_BATCH_URL = 'https://www.google-analytics.com/batch'
 
 
 function GoogleAnalytics:ctor()
 end
 
-function GoogleAnalytics:init(ua, user_id, client_id)
+function GoogleAnalytics:init(ua, user_id, client_id, app_name, app_version)
 	if not ua then
 		LOG.std(nil, "error", "GoogleAnalytics->Init", "ua parameter is a must");
 	end
@@ -48,21 +83,24 @@ function GoogleAnalytics:init(ua, user_id, client_id)
 	self.ua = ua
 	self.user_id = user_id or 'anonymous'
 	self.client_id = client_id or (rand(1000000000, 9999999999) .. '.' .. rand(1000000000, 9999999999))
+	self.app_name = app_name or 'npl analytics'
+	self.app_version = app_version or '0.0'
+	self.data_source = 'app'
 
 	return self
 end
 
-function GoogleAnalytics:MergeOptions(options)
+function GoogleAnalytics:_MergeOptions(options)
 	-- https://developers.google.com/analytics/devguides/collection/protocol/v1/parameters
 	-- there're too many parameters to use. we will extend it later.
 	return {
-
-
 		v = options.version or 1, -- ga api version
 		tid = self.ua, -- tracking id (your ua number)
 		uid = self.user_id, -- User ID, e.g. a login user name
 		cid = self.client_id, -- client id number, e.g. the device UUID number
 		z = options.z or rand(1000000000, 2147483647), -- a random number to avoid http cache
+
+		sc = options.session_control, -- session control, 'start' or 'end'
 
 		-- the type of tracking.
 		-- event, transaction, pageview, screenview,
@@ -73,17 +111,38 @@ function GoogleAnalytics:MergeOptions(options)
 		el = options.label, -- event label
 		ev = options.value, -- event value
 
-		sc = options.session_control, -- session control, 'start' or 'end'
-		aip = options.anonymous_ip,  -- don't track my ip
-		uip = options.user_ip, -- user machine ip address
+		ds = options.data_source or self.data_source, -- data source, like 'web', 'app' or others
+		an = options.app_name or self.app_name, -- Application Name
+		av = options.app_version or self.app_version, -- Application Version
+		aid = options.app_id, -- Application ID, e.g. com.company.app
+		aiid = options.app_installer_id, -- Application Installer ID, e.g. com.platform.vending
+
+		sr = options.screen_resolution, -- device screen resolution, e.g. 800x600
+		vp = options.view_port, -- device view port size, e.g. 123x456
+		de = options.document_encoding or 'UTF-8', -- document encoding
+		sd = options.screen_depth, -- screen color depth, e.g. 24-bits
+		ul = options.user_language or 'zh-cn', -- user language
+
+		aip = options.anonymous_ip,  -- boolean, 0 or 1. don't track my ip
+		uip = options.user_ip, -- user machine ip address, in case user behind a proxy
+		ua = options.user_agent, -- browser user agent
 		geoid = options.geo_id, -- geo id, e.g. US
 
-		ds = options.data_source, -- data source, like 'web', 'app' or others
-		ua = options.user_agent, -- browser user agent
-		an = options.app_name, -- Application Name
-		aid = options.app_id, -- Application ID
-		av = options.app_version, -- Application Version
-		aiid = options.app_installer_id, -- Application Installer ID
+		-- custom dimensions, at most 20
+		cd1 = options.custom_dimension_1,
+		cd2 = options.custom_dimension_2,
+		cd3 = options.custom_dimension_3,
+		cd4 = options.custom_dimension_4,
+		cd5 = options.custom_dimension_5,
+		-- ....
+
+		-- custom metrics, at most 20
+		cm1 = options.custom_metric_1,
+		cm2 = options.custom_metric_2,
+		cm3 = options.custom_metric_3,
+		cm4 = options.custom_metric_4,
+		cm5 = options.custom_metric_5,
+		-- ....
 	}
 end
 
@@ -92,7 +151,7 @@ function GoogleAnalytics:_HttpPost(url, payload, headers)
 		{
 			url = url,
 			headers = {
-				['User-Agent'] = headers.user_agent or 'npl analytics/1.0',
+				['User-Agent'] = headers.user_agent or 'npl analytics/0.0',
 				['Content-Type'] = 'application/x-www-form-urlencoded',
 			},
 			postfields = payload,
@@ -103,39 +162,13 @@ function GoogleAnalytics:_HttpPost(url, payload, headers)
 end
 
 function GoogleAnalytics:_Collect(options)
-	local merged_options = self:MergeOptions(options)
-	local payload = self:GetPayload(merged_options)
+	local merged_options = self:_MergeOptions(options)
+	local payload = self:_GetPayload(merged_options)
 	local url = GA_URL
 
 	LOG.std(nil, "debug", "GoogleAnalytics->collect", payload)
 	return self:_HttpPost(url, payload, {user_agent=options.user_agent})
 end
-
-function GoogleAnalytics:_Batch(batch_options)
-	-- FIXME
-	-- I did everything the guide told me,
-	-- https://developers.google.com/analytics/devguides/collection/protocol/v1/devguide
-	-- but it doesn't work. I can't figure out why.
-	LOG.std(nil, "error", "GoogleAnalytics->_Batch", "This api is not accomplished.");
-
-	local url = GA_BATCH_URL
-	-- TODO most 20 options can be sent once
-	local batch_merged_options = {}
-	for i, o in pairs(batch_options) do
-		batch_merged_options[#batch_merged_options+1] = self:MergeOptions(o)
-	end
-
-	local payloads = {}
-	for i, o in pairs(batch_merged_options) do
-		payloads[#payloads+1] = self:GetPayload(o)
-	end
-
-	local payload = table_concat(payloads, '\n')
-
-	LOG.std(nil, "debug", "GoogleAnalytics->batch", payload)
-	return self:_HttpPost(url, payload, {user_agent=batch_options[1].user_agent})
-end
-
 
 -- https://github.com/stuartpb/tvtropes-lua/blob/master/urlencode.lua
 local function encode(str)
@@ -164,7 +197,7 @@ local function urlencode(options)
 	return table_concat(arr, '&')
 end
 
-function GoogleAnalytics:GetPayload(options)
+function GoogleAnalytics:_GetPayload(options)
 	-- transform options from dict to x-www-url-encode form
 	return urlencode(options)
 end
@@ -190,15 +223,20 @@ function GoogleAnalytics:SendEvent(event)
 	self:_Collect(event)
 end
 
-function GoogleAnalytics:SendEvents(events)
-	if next(events) == nil then
-		return
-	end
-	for i, e in pairs(events) do
-		if not self:_CheckEvent(e) then
-			LOG.std(nil, "error", "GoogleAnalytics->SendEvents, event object is illegal: ", e)
-			return
-		end
-	end
-	-- self:_Batch(events)
+function GoogleAnalytics:_SendSession(session)
+	local url = GA_URL
+	options = self._MergeOptions(session)
+	payload = self._GetPayload(options)
+
+	LOG.std(nil, "debug", "GoogleAnalytics->send session", payload)
+	return self:_HttpPost(url, payload, {user_agent=options.user_agent})
+end
+
+-- force start a new session
+function GoogleAnalytics:StartSession()
+	self._SendSession({session_control='start'})
+end
+-- force end the current session
+function GoogleAnalytics:EndSession()
+	self._SendSession({session_control='end'})
 end
