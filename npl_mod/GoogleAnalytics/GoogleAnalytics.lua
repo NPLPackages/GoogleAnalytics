@@ -191,7 +191,7 @@ local function urlencode(options)
 	local arr = {}
 	for k, v in pairs(options) do
 		if v ~= nil then
-			arr[#arr+1] = encode(k) .. '=' .. encode(v)
+			arr[#arr+1] = encode(tostring(k)) .. '=' .. encode(tostring(v))
 		end
 	end
 	return table_concat(arr, '&')
