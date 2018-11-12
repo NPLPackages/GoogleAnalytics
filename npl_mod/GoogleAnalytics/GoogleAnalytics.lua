@@ -19,7 +19,7 @@
 	-- define parameters
 
 	-- ua number from google
-	-- this is the only mandatory parameter
+	-- this is the only one that's mandatory
 	UA = 'UA-127983943-1'
 	-- a account that represent a user, such as keepwork username or etc
 	-- default: 'anonymous'
@@ -33,9 +33,12 @@
 	-- which version of current app. 0.7.14, 0.7.0, or etc
 	-- default: '0.0'
 	app_version = '0.7.14'
+	-- how many api requests per second you limit
+	-- default: 2
+	api_rate = 4
 
 	-- init ga client
-	gaClient = GoogleAnalytics:new():init(UA, user_id, client_id, app_name, app_version)
+	gaClient = GoogleAnalytics:new():init(UA, user_id, client_id, app_name, app_version, api_rate)
 
 	-------------------------------------------------------------------------------------------
 	-- Send Event
@@ -61,6 +64,7 @@
 	gaClient:EndSession()
 ]]
 
+
 local GoogleAnalytics = commonlib.inherit(nil, NPL.export())
 
 local table_concat = table.concat
@@ -75,7 +79,7 @@ local GA_URL = 'https://www.google-analytics.com/collect'
 function GoogleAnalytics:ctor()
 end
 
-function GoogleAnalytics:init(ua, user_id, client_id, app_name, app_version)
+function GoogleAnalytics:init(ua, user_id, client_id, app_name, app_version, api_rate)
 	if not ua then
 		LOG.std(nil, "error", "GoogleAnalytics->Init", "ua parameter is a must");
 	end
@@ -86,6 +90,14 @@ function GoogleAnalytics:init(ua, user_id, client_id, app_name, app_version)
 	self.app_name = app_name or 'npl analytics'
 	self.app_version = app_version or '0.0'
 	self.data_source = 'app'
+
+	-- limit request number per second
+	self.avg_rate = api_rate or 2
+	self.peak_rate = self.avg_rate * 4
+
+	NPL.load("(gl)script/ide/Network/StreamRateController.lua");
+	local StreamRateController = commonlib.gettable("commonlib.Network.StreamRateController");
+	self.rate_limiter = StreamRateController:new({name="analytics-rate-limiter", history_length = self.peak_rate, max_msg_rate=self.avg_rate})
 
 	return self
 end
@@ -147,18 +159,21 @@ function GoogleAnalytics:_MergeOptions(options)
 end
 
 function GoogleAnalytics:_HttpPost(url, payload, headers)
-	return http_post(
-		{
-			url = url,
-			headers = {
-				['User-Agent'] = headers.user_agent or 'npl analytics/0.0',
-				['Content-Type'] = 'application/x-www-form-urlencoded',
-			},
-			postfields = payload,
-		},
-		function (err, msg, data)
-		end
-	)
+	return self.rate_limiter:AddMessage(1, function()
+											http_post(
+												{
+													url = url,
+													headers = {
+														['User-Agent'] = headers.user_agent or 'npl analytics/0.0',
+														['Content-Type'] = 'application/x-www-form-urlencoded',
+													},
+													postfields = payload,
+												},
+												function (err, msg, data)
+													LOG.std(nil, "debug", "GoogleAnalytics->_HttpPost", payload)
+												end
+											)
+	end)
 end
 
 function GoogleAnalytics:_Collect(options)
@@ -166,7 +181,6 @@ function GoogleAnalytics:_Collect(options)
 	local payload = self:_GetPayload(merged_options)
 	local url = GA_URL
 
-	LOG.std(nil, "debug", "GoogleAnalytics->collect", payload)
 	return self:_HttpPost(url, payload, {user_agent=options.user_agent})
 end
 
@@ -220,7 +234,7 @@ function GoogleAnalytics:SendEvent(event)
 	end
 	event.type = 'event'
 
-	self:_Collect(event)
+	return self:_Collect(event)
 end
 
 function GoogleAnalytics:_SendSession(session)
