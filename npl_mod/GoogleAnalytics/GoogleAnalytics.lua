@@ -160,19 +160,24 @@ end
 
 function GoogleAnalytics:_HttpPost(url, payload, headers)
 	return self.rate_limiter:AddMessage(1, function()
-											http_post(
-												{
-													url = url,
-													headers = {
-														['User-Agent'] = headers.user_agent or 'npl analytics/0.0',
-														['Content-Type'] = 'application/x-www-form-urlencoded',
-													},
-													postfields = payload,
-												},
-												function (err, msg, data)
-													LOG.std(nil, "debug", "GoogleAnalytics->_HttpPost", payload)
-												end
-											)
+		http_post(
+			{
+				url = url,
+				headers = {
+					['User-Agent'] = headers.user_agent or 'npl analytics/0.0',
+					['Content-Type'] = 'application/x-www-form-urlencoded',
+				},
+				postfields = payload,
+			},
+			function (err, msg, data)
+				if(err == 200) then
+					LOG.std(nil, "debug", "GoogleAnalytics event sent", payload)
+				else
+					LOG.std(nil, "warn", "GoogleAnalytics", "failed with http code: %d", err)
+					LOG.std(nil, "warn", "GoogleAnalytics", payload)
+				end
+			end
+		)
 	end)
 end
 
