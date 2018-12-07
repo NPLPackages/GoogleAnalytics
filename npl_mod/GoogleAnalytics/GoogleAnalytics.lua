@@ -45,6 +45,8 @@
 	-------------------------------------------------------------------------------------------
 
 	-- category key and action key are mandatory
+	-- ATTENTION options.value should be number type. it'll be converted to number if it's not.
+	-- you'd better follow the 'number type' rule because the parameter converted is possibly not what you want.
 	options = {
 	  category = 'block',
 	  action = 'create',
@@ -121,7 +123,7 @@ function GoogleAnalytics:_MergeOptions(options)
 		ec = options.category, -- event category
 		ea = options.action, --- event action
 		el = options.label, -- event label
-		ev = options.value, -- event value
+		ev = tonumber(options.value), -- event value, must be number type
 
 		ds = options.data_source or self.data_source, -- data source, like 'web', 'app' or others
 		an = options.app_name or self.app_name, -- Application Name
