@@ -123,7 +123,7 @@ function GoogleAnalytics:_MergeOptions(options)
 		ec = options.category, -- event category
 		ea = options.action, --- event action
 		el = options.label, -- event label
-		ev = tonumber(options.value), -- event value, must be number type
+		ev = options.value and tonumber(options.value), -- event value, must be number type
 
 		ds = options.data_source or self.data_source, -- data source, like 'web', 'app' or others
 		an = options.app_name or self.app_name, -- Application Name
