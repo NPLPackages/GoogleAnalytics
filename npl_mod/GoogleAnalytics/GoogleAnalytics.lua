@@ -191,11 +191,12 @@ function GoogleAnalytics:_HttpPost(url, payload, headers)
 	end
 
 	return self.rate_limiter:AddMessage(1, function()
+		local agent = headers.user_agent or default_agent
 		http_post(
 			{
 				url = url,
 				headers = {
-					['User-Agent'] = headers.user_agent or default_agent,
+					['User-Agent'] = agent,
 					['Content-Type'] = 'application/x-www-form-urlencoded',
 				},
 				postfields = payload,
@@ -203,6 +204,7 @@ function GoogleAnalytics:_HttpPost(url, payload, headers)
 			function (err, msg, data)
 				if(err == 200) then
 					LOG.std(nil, "debug", "GoogleAnalytics event sent", payload)
+					LOG.std(nil, "debug", "agent", agent)
 				else
 					LOG.std(nil, "warn", "GoogleAnalytics", "failed with http code: %d", err)
 					LOG.std(nil, "warn", "GoogleAnalytics", payload)
