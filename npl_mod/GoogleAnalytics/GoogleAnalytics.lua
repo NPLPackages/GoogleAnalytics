@@ -66,8 +66,8 @@
 	gaClient:EndSession()
 ]]
 
-
 local GoogleAnalytics = commonlib.inherit(nil, NPL.export())
+GoogleAnalytics.LogCollector = NPL.load("./LogCollector.lua");
 
 local table_concat = table.concat
 local rand = math.random

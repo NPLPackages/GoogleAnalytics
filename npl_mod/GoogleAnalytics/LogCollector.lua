@@ -7,9 +7,8 @@ desc: a logger for collecting anything you care to log server
 ===========================================================================================
 useage:
 ===========================================================================================
-
-local LogCollector = NPL.load("npl_mod/GoogleAnalytics/LogCollector")
-local logger = LogCollector:new():init()
+local GoogleAnalytics = NPL.load("GoogleAnalytics")
+local logger = GoogleAnalytics.LogCollector:new():init()
 
 -- level, title, body
 -- send log msg directly to server
@@ -27,7 +26,7 @@ local LOG_SERVER_URL = 'http://paralog.kp-para.cn'
 function LogCollector:ctor()
 end
 
-function LogCollector:init(server_url)
+function LogCollector:init(server_url, app_name)
     self.server_url = server_url or LOG_SERVER_URL
 
     self.base = {
@@ -78,7 +77,7 @@ function LogCollector:init(server_url)
 
     -- TODO: os version
 
-    self.base['app']['name'] = self:_app_name()
+    self.base['app']['name'] = app_name or self:_app_name()
     self.base['app']['version'] = System.options.ClientVersion
 
     local debug = ParaEngine.GetAppCommandLineByParam("debug", false);
