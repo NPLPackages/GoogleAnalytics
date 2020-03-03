@@ -42,6 +42,7 @@ function LogCollector:init(server_url)
         app = {
             name = nil,                    -- paracraft, haqi or haqi2
             version = nil,                 -- like 0.7.523
+            env = nil,                     -- dev, prod
         },
         user = {
             name = nil,                    -- keepwork name or machine id
