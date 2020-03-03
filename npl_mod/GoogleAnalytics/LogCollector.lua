@@ -12,7 +12,11 @@ local LogCollector = NPL.load("npl_mod/GoogleAnalytics/LogCollector")
 local logger = LogCollector:new():init()
 
 -- level, title, body
+-- send log msg directly to server
 logger:send('info', 'runtime error at line 122 in file server.lua', 'server does not support this operation.')
+
+-- collect log msg and npl will schedule the rate, make it unique and then auto send log msg to server 
+logger:collect('info', 'runtime error at line 122 in file server.lua', 'server does not support this operation.')
 ]]
 
 
@@ -77,7 +81,19 @@ function LogCollector:init(server_url)
     self.base['app']['name'] = self:_app_name()
     self.base['app']['version'] = System.options.ClientVersion
 
+    local debug = ParaEngine.GetAppCommandLineByParam("debug", false);
+    if debug then
+        self.base['app']['env'] = 'dev'
+    else
+        self.base['app']['env'] = 'prod'
+    end
+
     self.base['user']['name'], self.base['user']['source'] = self:_user_info()
+
+    self.history = {}
+
+    local StreamRateController = commonlib.gettable("commonlib.Network.StreamRateController");
+    self.rate_limiter = StreamRateController:new({name="logcollector-rate-limiter", history_length=4, max_msg_rate=1})
 
     return self
 end
@@ -154,10 +170,22 @@ function LogCollector:_post(url, payload)
 end
 
 function LogCollector:send(level, title, body)
+    self.history[title] = true
+
     self.base['level'] = level
     self.base['title'] = title
     self.base['body'] = body
 
     self:_post(self.server_url, self.base)
+end
+
+function LogCollector:collect(level, title, body)
+    if self.history[title] then
+        return
+    end
+
+    self.rate_limiter:AddMessage(1, function()
+        self:send(level, title, body)
+	end)
 end
 
