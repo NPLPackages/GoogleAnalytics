@@ -1,17 +1,18 @@
 --[[
-	title: LogCollector
-	author: DreamAndDead
-	date: 2020/03/02
-    desc: a logger for collecting anything you care to log server
+title: LogCollector
+author: DreamAndDead
+date: 2020/03/02
+desc: a logger for collecting anything you care to log server
     
-	===========================================================================================
-	useage:
-	===========================================================================================
-    local LogCollector = NPL.load("npl_mod/GoogleAnalytics/LogCollector")
-    local logger = LogCollector:new():init()
+===========================================================================================
+useage:
+===========================================================================================
 
-    -- level, title, body
-    logger:send('info', 'runtime error at line 122 in file server.lua', 'server does not support this operation.')
+local LogCollector = NPL.load("npl_mod/GoogleAnalytics/LogCollector")
+local logger = LogCollector:new():init()
+
+-- level, title, body
+logger:send('info', 'runtime error at line 122 in file server.lua', 'server does not support this operation.')
 ]]
 
 
