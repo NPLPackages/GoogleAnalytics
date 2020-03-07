@@ -73,7 +73,7 @@ function LogCollector:init(server_url)
     end
 
     local pc_stat = System.os.GetPCStats()
-    self.base['device']['memory']['total'] = math.floor(pc_stat['memory'])
+    self.base['device']['memory']['total'] = math.floor(pc_stat['memory'] or 0) 
     self.base['device']['graphics']['videocard'] = pc_stat['videocard']
 
     -- TODO: os version
