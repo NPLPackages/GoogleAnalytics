@@ -77,12 +77,12 @@ function LogCollector:init(server_url)
     self.base['device']['graphics']['videocard'] = pc_stat['videocard']
 
     -- TODO: os version
+    System.options = System.options or {};
 
     self.base['app']['name'] = self:_app_name()
     self.base['app']['version'] = System.options.ClientVersion
 
-    local debug = ParaEngine.GetAppCommandLineByParam("debug", false);
-    if debug then
+    if System.options.isAB_SDK then
         self.base['app']['env'] = 'dev'
     else
         self.base['app']['env'] = 'prod'
