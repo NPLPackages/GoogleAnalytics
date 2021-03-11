@@ -161,57 +161,8 @@ function GoogleAnalytics:_MergeOptions(options)
 end
 
 function GoogleAnalytics:_HttpPost(url, payload, headers)
-	local platform = System.os.GetPlatform()
-	local x64 = System.os.Is64BitsSystem()
-
-	-- use firefox user-agent
-	-- reference: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent/Firefox
-	--            https://www.computerhope.com/jargon/w/winnt.htm
-	local default_agent = ''
-	if platform == 'win32' then
-		-- default win 10
-		default_agent = 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/10.0'
-		if x64 then
-			default_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:10.0) Gecko/20100101 Firefox/10.0'
-		end
-	elseif platform == 'linux' then
-		default_agent = 'Mozilla/5.0 (X11; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0'
-		if x64 then
-			default_agent = 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0'
-		end
-	elseif platform == 'mac' then
-		-- default Intel Core
-		default_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:10.0) Gecko/20100101 Firefox/10.0'
-	elseif platform == 'android' then
-		-- default 4.4+
-		default_agent = 'Mozilla/5.0 (Android 4.4; Mobile; rv:41.0) Gecko/41.0 Firefox/41.0'
-	elseif platform == 'ios' then
-		-- default iPhone
-		default_agent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4'
-	end
-
-	return self.rate_limiter:AddMessage(1, function()
-		local agent = headers.user_agent or default_agent
-		http_post(
-			{
-				url = url,
-				headers = {
-					['User-Agent'] = agent,
-					['Content-Type'] = 'application/x-www-form-urlencoded',
-				},
-				postfields = payload,
-			},
-			function (err, msg, data)
-				if(err == 200) then
-					LOG.std(nil, "debug", "GoogleAnalytics event sent", payload)
-					LOG.std(nil, "debug", "agent", agent)
-				else
-					LOG.std(nil, "warn", "GoogleAnalytics", "failed with http code: %d", err)
-					LOG.std(nil, "warn", "GoogleAnalytics", payload)
-				end
-			end
-		)
-	end)
+	-- don't need GA service anymore
+	-- base on the GA team email, paracraft has exceed the limit 10000k events per month
 end
 
 function GoogleAnalytics:_Collect(options)
